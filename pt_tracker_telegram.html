@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Облік ПТ</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root {
+    --tg-bg: #ffffff;
+    --tg-secondary-bg: #f0f2f5;
+    --tg-text: #1c1c1e;
+    --tg-hint: #8e8e93;
+    --tg-link: #2481cc;
+    --tg-button: #2481cc;
+    --tg-button-text: #ffffff;
+    --card: #ffffff;
+    --border: #e6e9ee;
+    --appolo: #c17a2e;
+    --appolo-bg: #fbeed9;
+    --kino: #4a72b0;
+    --kino-bg: #e8effa;
+    --danger: #d16464;
+    --radius: 18px;
+    --radius-sm: 13px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--tg-secondary-bg);
+    color: var(--tg-text);
+    padding: 16px 14px 90px;
+  }
+  .wrap { max-width: 560px; margin: 0 auto; }
+  .header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+  .header .emoji-badge {
+    width: 44px; height: 44px; border-radius: 14px;
+    background: var(--tg-button); display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+  }
+  h1 { font-size: 19px; font-weight: 700; margin: 0; }
+  .sub { color: var(--tg-hint); font-size: 12.5px; margin-top: 2px; }
+
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 14px;
+  }
+  .card h2 {
+    font-size: 14px;
+    font-weight: 700;
+    margin: 0 0 14px;
+    color: var(--tg-text);
+  }
+
+  .row { display: flex; gap: 10px; margin-bottom: 11px; }
+  .row > * { flex: 1; }
+
+  label { font-size: 12px; color: var(--tg-hint); display: block; margin-bottom: 6px; font-weight: 600; }
+
+  select, input {
+    width: 100%;
+    padding: 11px 13px;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 16px;
+    background: var(--tg-secondary-bg);
+    color: var(--tg-text);
+  }
+  select:focus, input:focus { outline: 2px solid var(--tg-button); }
+
+  .gym-toggle { display: flex; gap: 8px; margin-bottom: 12px; }
+  .gym-btn {
+    flex: 1;
+    padding: 12px 10px;
+    border-radius: var(--radius-sm);
+    border: none;
+    background: var(--tg-secondary-bg);
+    font-size: 14.5px;
+    font-weight: 700;
+    cursor: pointer;
+    color: var(--tg-hint);
+  }
+  .gym-btn.active[data-gym="Appolo"] { background: var(--appolo); color: #fff; }
+  .gym-btn.active[data-gym="KINO"] { background: var(--kino); color: #fff; }
+  .price-btn.active { background: var(--tg-button); color: var(--tg-button-text); }
+
+  .add-btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: var(--tg-button);
+    color: var(--tg-button-text);
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 4px;
+  }
+
+  .period-tabs { display: flex; gap: 6px; margin-bottom: 14px; background: var(--tg-secondary-bg); padding: 4px; border-radius: var(--radius-sm); }
+  .period-tab {
+    flex: 1;
+    padding: 9px;
+    text-align: center;
+    border-radius: 10px;
+    border: none;
+    background: transparent;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--tg-hint);
+  }
+  .period-tab.active { background: var(--card); color: var(--tg-text); }
+
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .stat-box { background: var(--tg-secondary-bg); border-radius: var(--radius-sm); padding: 14px; }
+  .stat-box .label { font-size: 11.5px; color: var(--tg-hint); margin-bottom: 6px; font-weight: 600; }
+  .stat-box .value { font-size: 23px; font-weight: 700; color: var(--tg-text); }
+
+  .gym-stats { display: flex; gap: 10px; }
+  .gym-stat { flex: 1; border-radius: var(--radius-sm); padding: 12px 14px; }
+  .gym-stat[data-gym="Appolo"] { background: var(--appolo-bg); }
+  .gym-stat[data-gym="KINO"] { background: var(--kino-bg); }
+  .gym-stat .name { font-size: 12.5px; font-weight: 700; margin-bottom: 5px; }
+  .gym-stat[data-gym="Appolo"] .name { color: var(--appolo); }
+  .gym-stat[data-gym="KINO"] .name { color: var(--kino); }
+  .gym-stat .num { font-size: 14px; font-weight: 600; }
+  .gym-stat .num2 { font-size: 12px; color: var(--tg-hint); margin-top: 2px; }
+
+  .list { display: flex; flex-direction: column; gap: 8px; }
+  .item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    background: var(--tg-secondary-bg);
+  }
+  .item .left { display: flex; align-items: center; gap: 11px; }
+  .avatar {
+    width: 34px; height: 34px; border-radius: 11px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 13px; flex-shrink: 0;
+  }
+  .avatar.Appolo { background: var(--appolo-bg); color: var(--appolo); }
+  .avatar.KINO { background: var(--kino-bg); color: var(--kino); }
+  .name-text { font-weight: 700; font-size: 14.5px; }
+  .meta { font-size: 12.5px; color: var(--tg-hint); margin-top: 2px; }
+  .price { font-weight: 700; font-size: 14.5px; color: var(--tg-text); }
+  .del-btn {
+    background: none; border: none; color: var(--danger);
+    font-size: 19px; cursor: pointer; padding: 0 4px 0 8px; line-height: 1;
+  }
+  .empty { color: var(--tg-hint); font-size: 13.5px; text-align: center; padding: 26px 0; }
+  .filter-row { display: flex; gap: 8px; margin-bottom: 12px; }
+  .filter-btn {
+    padding: 7px 14px; border-radius: var(--radius-sm); border: none;
+    background: var(--tg-secondary-bg); font-size: 12.5px; font-weight: 600; cursor: pointer; color: var(--tg-hint);
+  }
+  .filter-btn.active { background: var(--tg-button); color: var(--tg-button-text); }
+
+  .preview-banner {
+    background: #fff3cd; color: #7a5c00; font-size: 12px; padding: 10px 14px;
+    border-radius: var(--radius-sm); margin-bottom: 14px; text-align: center;
+  }
+
+  .quick-dates { display: flex; gap: 8px; margin-top: 8px; }
+  .quick-date-btn {
+    padding: 6px 12px; border-radius: 10px; border: none;
+    background: var(--tg-secondary-bg); font-size: 12px; font-weight: 600; cursor: pointer; color: var(--tg-hint);
+  }
+  .quick-date-btn:active { background: var(--tg-button); color: var(--tg-button-text); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="preview-banner-slot"></div>
+  <div class="header">
+    <div class="emoji-badge">🏋️</div>
+    <div>
+      <h1>Облік тренувань</h1>
+      <div class="sub" id="today-label"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 id="form-title">Нове тренування</h2>
+    <div class="gym-toggle" id="gym-toggle">
+      <button class="gym-btn active" data-gym="Appolo" onclick="selectGym('Appolo')">Appolo</button>
+      <button class="gym-btn" data-gym="KINO" onclick="selectGym('KINO')">KINO</button>
+    </div>
+    <div class="row">
+      <div>
+        <label>Ім'я клієнта</label>
+        <input type="text" id="name-input" placeholder="Іван">
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Дата</label>
+        <input type="date" id="date-input">
+        <div class="quick-dates">
+          <button type="button" class="quick-date-btn" onclick="setFormDate(0)">Сьогодні</button>
+          <button type="button" class="quick-date-btn" onclick="setFormDate(-1)">Вчора</button>
+        </div>
+      </div>
+    </div>
+    <div style="margin-bottom: 12px;">
+      <label>Ціна, ₴</label>
+      <div class="gym-toggle" id="price-toggle">
+        <button class="gym-btn price-btn active" data-price="400" onclick="selectPrice(400)">400</button>
+        <button class="gym-btn price-btn" data-price="387" onclick="selectPrice(387)">387</button>
+        <button class="gym-btn price-btn" data-price="375" onclick="selectPrice(375)">375</button>
+      </div>
+    </div>
+    <button class="add-btn" id="submit-btn" onclick="addSession()">Додати тренування</button>
+    <button class="add-btn" id="cancel-btn" style="display:none; background: var(--tg-secondary-bg); color: var(--tg-hint); margin-top: 8px;" onclick="cancelEdit()">Скасувати редагування</button>
+  </div>
+
+  <div class="card">
+    <h2>Статистика</h2>
+    <div class="period-tabs">
+      <div class="period-tab active" data-period="day" onclick="setPeriod('day')">День</div>
+      <div class="period-tab" data-period="week" onclick="setPeriod('week')">Тиждень</div>
+      <div class="period-tab" data-period="month" onclick="setPeriod('month')">Місяць</div>
+    </div>
+    <div id="day-picker-row" style="margin-bottom: 14px;">
+      <label style="margin-bottom: 6px;">Дата</label>
+      <input type="date" id="stat-day-input" onchange="onStatDayChange()">
+      <div class="quick-dates">
+        <button type="button" class="quick-date-btn" onclick="setStatDate(0)">Сьогодні</button>
+        <button type="button" class="quick-date-btn" onclick="setStatDate(-1)">Вчора</button>
+      </div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-box">
+        <div class="label">Тренувань</div>
+        <div class="value" id="stat-count">0</div>
+      </div>
+      <div class="stat-box" id="revenue-box" onclick="toggleRevenue()" style="cursor: pointer;">
+        <div class="label">Дохід, ₴ <span style="opacity:0.6;">· натисни, щоб показати</span></div>
+        <div class="value" id="stat-revenue">••••</div>
+      </div>
+    </div>
+    <div class="gym-stats">
+      <div class="gym-stat" data-gym="Appolo" onclick="toggleRevenue()" style="cursor: pointer;">
+        <div class="name">Appolo</div>
+        <div class="num" id="appolo-count">0 тренувань</div>
+        <div class="num2" id="appolo-revenue">••••</div>
+      </div>
+      <div class="gym-stat" data-gym="KINO" onclick="toggleRevenue()" style="cursor: pointer;">
+        <div class="name">KINO</div>
+        <div class="num" id="kino-count">0 тренувань</div>
+        <div class="num2" id="kino-revenue">••••</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Історія</h2>
+    <div class="filter-row">
+      <div class="filter-btn active" data-f="all" onclick="setFilter('all')">Усі</div>
+      <div class="filter-btn" data-f="Appolo" onclick="setFilter('Appolo')">Appolo</div>
+      <div class="filter-btn" data-f="KINO" onclick="setFilter('KINO')">KINO</div>
+    </div>
+    <div class="list" id="session-list"></div>
+  </div>
+
+  <div class="card">
+    <h2>Резервна копія</h2>
+    <button class="add-btn" onclick="exportBackup()">Завантажити копію (JSON)</button>
+    <button class="add-btn" style="background: var(--tg-secondary-bg); color: var(--tg-hint); margin-top: 10px;" onclick="document.getElementById('import-file-input').click()">Відновити з файлу</button>
+    <input type="file" id="import-file-input" accept="application/json,.json" style="display:none;" onchange="importBackup(event)">
+  </div>
+</div>
+
+<script>
+let sessions = [];
+let currentGym = 'Appolo';
+let currentPrice = 400;
+let currentPeriod = 'day';
+let currentFilter = 'all';
+let editingId = null;
+let selectedDay = null;
+let revenueVisible = false;
+let tg = window.Telegram ? window.Telegram.WebApp : null;
+let isInsideTelegram = !!(tg && tg.initData);
+
+// Telegram Web App setup
+if (tg) {
+  tg.ready();
+  tg.expand();
+  if (isInsideTelegram && tg.themeParams) {
+    const root = document.documentElement.style;
+    if (tg.themeParams.bg_color) root.setProperty('--tg-secondary-bg', tg.themeParams.secondary_bg_color || tg.themeParams.bg_color);
+    if (tg.themeParams.text_color) root.setProperty('--tg-text', tg.themeParams.text_color);
+    if (tg.themeParams.hint_color) root.setProperty('--tg-hint', tg.themeParams.hint_color);
+    if (tg.themeParams.button_color) root.setProperty('--tg-button', tg.themeParams.button_color);
+    if (tg.themeParams.button_text_color) root.setProperty('--tg-button-text', tg.themeParams.button_text_color);
+    if (tg.themeParams.bg_color) root.setProperty('--card', tg.themeParams.bg_color);
+  }
+} else {
+  document.getElementById('preview-banner-slot').innerHTML =
+    '<div class="preview-banner">Це попередній перегляд поза Telegram. Усередині месенджера інтерфейс автоматично підлаштується під тему користувача (світлу або темну), а дані зберігатимуться через Telegram Cloud Storage.</div>';
+}
+
+function todayISO() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function isoWithOffset(days) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function setFormDate(offset) {
+  document.getElementById('date-input').value = isoWithOffset(offset);
+  if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+}
+
+function setStatDate(offset) {
+  document.getElementById('stat-day-input').value = isoWithOffset(offset);
+  if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+  onStatDayChange();
+}
+
+selectedDay = todayISO();
+document.getElementById('date-input').value = todayISO();
+document.getElementById('stat-day-input').value = todayISO();
+document.getElementById('today-label').textContent = new Date().toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' });
+
+function selectGym(gym) {
+  currentGym = gym;
+  document.querySelectorAll('.gym-btn').forEach(b => b.classList.toggle('active', b.dataset.gym === gym));
+  if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+}
+
+function selectPrice(price) {
+  currentPrice = price;
+  document.querySelectorAll('.price-btn').forEach(b => b.classList.toggle('active', parseInt(b.dataset.price) === price));
+  if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+}
+
+function toggleRevenue() {
+  revenueVisible = !revenueVisible;
+  if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+  renderStats();
+}
+
+function onStatDayChange() {
+  selectedDay = document.getElementById('stat-day-input').value || todayISO();
+  renderStats();
+  renderList();
+}
+
+function setPeriod(p) {
+  currentPeriod = p;
+  document.querySelectorAll('.period-tab').forEach(b => b.classList.toggle('active', b.dataset.period === p));
+  renderStats();
+  renderList();
+}
+
+function setFilter(f) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.f === f));
+  renderList();
+}
+
+// Storage layer: Telegram CloudStorage when inside Telegram, window.storage otherwise (for this preview)
+function tgStorageGet(key) {
+  return new Promise((resolve) => {
+    if (isInsideTelegram && tg.CloudStorage) {
+      tg.CloudStorage.getItem(key, (err, value) => resolve(err ? null : value));
+    } else {
+      resolve(null);
+    }
+  });
+}
+function tgStorageSet(key, value) {
+  return new Promise((resolve) => {
+    if (isInsideTelegram && tg.CloudStorage) {
+      tg.CloudStorage.setItem(key, value, () => resolve(true));
+    } else {
+      resolve(true);
+    }
+  });
+}
+
+const hasClaudeStorage = typeof window.storage !== 'undefined' && window.storage !== null;
+
+async function loadSessions() {
+  try {
+    if (isInsideTelegram && tg.CloudStorage) {
+      const value = await tgStorageGet('pt_sessions');
+      sessions = value ? JSON.parse(value) : [];
+    } else if (hasClaudeStorage) {
+      const result = await window.storage.get('pt_sessions', false);
+      sessions = result ? JSON.parse(result.value) : [];
+    } else {
+      const raw = localStorage.getItem('pt_sessions');
+      sessions = raw ? JSON.parse(raw) : [];
+    }
+  } catch (e) {
+    sessions = [];
+  }
+  renderStats();
+  renderList();
+}
+
+async function saveSessions() {
+  try {
+    const payload = JSON.stringify(sessions);
+    if (isInsideTelegram && tg.CloudStorage) {
+      await tgStorageSet('pt_sessions', payload);
+    } else if (hasClaudeStorage) {
+      await window.storage.set('pt_sessions', payload, false);
+    } else {
+      localStorage.setItem('pt_sessions', payload);
+    }
+  } catch (e) {
+    console.error('Помилка збереження', e);
+  }
+}
+
+async function addSession() {
+  const name = document.getElementById('name-input').value.trim();
+  const price = currentPrice;
+  const date = document.getElementById('date-input').value;
+  if (!date) {
+    if (tg && tg.showAlert) tg.showAlert('Вкажіть дату'); else alert('Вкажіть дату');
+    return;
+  }
+
+  if (editingId) {
+    const idx = sessions.findIndex(s => s.id === editingId);
+    if (idx !== -1) {
+      sessions[idx] = { ...sessions[idx], gym: currentGym, name: name || 'Без імені', price: price, date: date };
+    }
+    cancelEdit();
+  } else {
+    sessions.push({
+      id: Date.now().toString(),
+      gym: currentGym,
+      name: name || 'Без імені',
+      price: price,
+      date: date
+    });
+    document.getElementById('name-input').value = '';
+  }
+  sessions.sort((a,b) => (b.date + b.id).localeCompare(a.date + a.id));
+  await saveSessions();
+  if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+  renderStats();
+  renderList();
+}
+
+function editSession(id) {
+  const s = sessions.find(s => s.id === id);
+  if (!s) return;
+  editingId = id;
+  document.getElementById('name-input').value = s.name === 'Без імені' ? '' : s.name;
+  document.getElementById('date-input').value = s.date;
+  selectGym(s.gym);
+  selectPrice(s.price);
+  document.getElementById('form-title').textContent = 'Редагування тренування';
+  document.getElementById('submit-btn').textContent = 'Зберегти зміни';
+  document.getElementById('cancel-btn').style.display = 'block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function cancelEdit() {
+  editingId = null;
+  document.getElementById('name-input').value = '';
+  document.getElementById('date-input').value = todayISO();
+  selectGym('Appolo');
+  selectPrice(400);
+  document.getElementById('form-title').textContent = 'Нове тренування';
+  document.getElementById('submit-btn').textContent = 'Додати тренування';
+  document.getElementById('cancel-btn').style.display = 'none';
+}
+
+async function deleteSession(id) {
+  sessions = sessions.filter(s => s.id !== id);
+  if (editingId === id) cancelEdit();
+  await saveSessions();
+  renderStats();
+  renderList();
+}
+
+function getDateRange(period) {
+  const [y, m, d] = (selectedDay || todayISO()).split('-').map(Number);
+  const anchor = new Date(y, m - 1, d);
+  if (period === 'day') {
+    return { start: anchor, end: new Date(anchor.getTime() + 86400000) };
+  }
+  if (period === 'week') {
+    const day = anchor.getDay();
+    const diff = day === 0 ? 6 : day - 1;
+    const weekStart = new Date(anchor.getTime() - diff * 86400000);
+    return { start: weekStart, end: new Date(weekStart.getTime() + 7 * 86400000) };
+  }
+  const monthStart = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
+  const monthEnd = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 1);
+  return { start: monthStart, end: monthEnd };
+}
+
+function renderStats() {
+  const { start, end } = getDateRange(currentPeriod);
+  const inRange = sessions.filter(s => {
+    const d = new Date(s.date + 'T00:00:00');
+    return d >= start && d < end;
+  });
+
+  const totalCount = inRange.length;
+  const totalRevenue = inRange.reduce((sum, s) => sum + s.price, 0);
+  document.getElementById('stat-count').textContent = totalCount;
+  document.getElementById('stat-revenue').textContent = revenueVisible
+    ? Math.round(totalRevenue).toLocaleString('uk-UA')
+    : '••••';
+
+  ['Appolo', 'KINO'].forEach(gym => {
+    const gymSessions = inRange.filter(s => s.gym === gym);
+    const count = gymSessions.length;
+    const rev = gymSessions.reduce((sum, s) => sum + s.price, 0);
+    document.getElementById(gym.toLowerCase() + '-count').textContent = count + ' тренувань';
+    document.getElementById(gym.toLowerCase() + '-revenue').textContent = revenueVisible
+      ? Math.round(rev).toLocaleString('uk-UA') + ' ₴'
+      : '••••';
+  });
+}
+
+function initials(name) {
+  if (!name || name === 'Без імені') return '?';
+  return name.trim().charAt(0).toUpperCase();
+}
+
+function renderList() {
+  const listEl = document.getElementById('session-list');
+  const { start, end } = getDateRange(currentPeriod);
+  const inPeriod = sessions.filter(s => {
+    const d = new Date(s.date + 'T00:00:00');
+    return d >= start && d < end;
+  });
+  const filtered = currentFilter === 'all' ? inPeriod : inPeriod.filter(s => s.gym === currentFilter);
+  const recent = filtered.slice(0, 30);
+
+  if (recent.length === 0) {
+    listEl.innerHTML = '<div class="empty">Немає тренувань за обраний період</div>';
+    return;
+  }
+
+  listEl.innerHTML = recent.map(s => {
+    const d = new Date(s.date + 'T00:00:00');
+    const dateStr = d.toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' });
+    return `
+      <div class="item">
+        <div class="left">
+          <div class="avatar ${s.gym}">${initials(s.name)}</div>
+          <div>
+            <div class="name-text">${s.name || 'Без імені'}</div>
+            <div class="meta">${dateStr} · ${s.gym}</div>
+          </div>
+        </div>
+        <div class="left">
+          <span class="price">${Math.round(s.price).toLocaleString('uk-UA')} ₴</span>
+          <button class="del-btn" style="color: var(--tg-hint); font-size: 15px;" onclick="editSession('${s.id}')" aria-label="Редагувати">✎</button>
+          <button class="del-btn" onclick="deleteSession('${s.id}')" aria-label="Видалити">×</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function exportBackup() {
+  const payload = JSON.stringify(sessions, null, 2);
+  const blob = new Blob([payload], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'pt-backup-' + todayISO() + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+}
+
+function importBackup(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    let imported;
+    try {
+      imported = JSON.parse(e.target.result);
+      if (!Array.isArray(imported)) throw new Error('bad format');
+    } catch (err) {
+      if (tg && tg.showAlert) tg.showAlert('Не вдалося прочитати файл. Перевір, що це саме файл резервної копії у форматі JSON.');
+      else alert('Не вдалося прочитати файл. Перевір, що це саме файл резервної копії у форматі JSON.');
+      event.target.value = '';
+      return;
+    }
+    const message = 'Знайдено записів у файлі: ' + imported.length + '. Замінити поточні дані цією резервною копією?';
+    const applyImport = async (ok) => {
+      if (ok) {
+        sessions = imported;
+        sessions.sort((a,b) => (b.date + b.id).localeCompare(a.date + a.id));
+        await saveSessions();
+        renderStats();
+        renderList();
+        if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+      }
+      event.target.value = '';
+    };
+    if (tg && tg.showConfirm) {
+      tg.showConfirm(message, applyImport);
+    } else {
+      applyImport(confirm(message));
+    }
+  };
+  reader.readAsText(file);
+}
+
+loadSessions();
+</script>
+</body>
+</html>
